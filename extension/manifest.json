@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "PDF Reader Chat",
+  "version": "1.0.0",
+  "description": "Send selected text or prompts to a local PDF Reader server and view replies.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "contextMenus",
+    "scripting",
+    "activeTab",
+    "storage",
+    "notifications",
+    "clipboardRead"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost:8787/*",
+    "http://127.0.0.1:8787/*",
+    "http://[::1]:8787/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*", "file://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

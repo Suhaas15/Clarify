@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>PDF Reader</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 10px;
+        width: 320px;
+      }
+      textarea {
+        width: 100%;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        align-items: center;
+      }
+      #status {
+        margin: 8px 0;
+        color: #555;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <small id="hint">Tip: Select on the page first, then open this popup. On PDFs, click “Paste from Clipboard”.</small>
+
+    <textarea id="input" placeholder="Selected or pasted text will appear here." rows="6"></textarea>
+
+    <div class="row">
+      <button id="btnUseSelection" type="button">Use Page Selection</button>
+      <button id="btnPasteClipboard" type="button">Paste from Clipboard</button>
+      <input id="max" type="number" min="64" max="4096" step="64" value="512" title="Max tokens" style="width:80px" />
+      <button id="send" type="button">Send</button>
+    </div>
+
+    <div id="status"></div>
+
+    <label for="reply" style="display:block;margin-top:8px;font-size:12px;">Assistant reply</label>
+    <textarea id="reply" rows="8" readonly placeholder="Reply will appear here…"></textarea>
+
+    <script src="popup.js" defer></script>
+  </body>
+</html>

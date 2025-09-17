@@ -1,5 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import { CONFIG } from './config';
 import { embedTexts } from './embeddings';
 import { chat } from './chat';
@@ -7,6 +8,12 @@ import { db } from './db';
 import { openai } from './openaiClient';
 
 const app = express();
+app.use(cors({
+  origin: true,
+  credentials: false,
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
 app.use(bodyParser.json());
 
 app.get('/health', async (_req, res) => {
