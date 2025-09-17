@@ -1,0 +1,7 @@
+{
+  "name": "pdf-reader",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["extension", "server"],
+  "engines": { "node": ">=20" }
+}

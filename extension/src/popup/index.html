@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Chat with Document</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <main>
+      <h1>Chat with Document</h1>
+      <textarea id="q" placeholder="Ask a question about this page or PDF…"></textarea>
+      <label class="row">
+        <input id="all" type="checkbox" />
+        <span>Search all saved docs</span>
+      </label>
+      <button id="ask">Ask</button>
+      <div id="answer" aria-live="polite"></div>
+    </main>
+    <script type="module" src="./popup.ts"></script>
+  </body>
+  </html>

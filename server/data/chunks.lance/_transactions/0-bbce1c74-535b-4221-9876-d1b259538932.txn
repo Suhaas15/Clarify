@@ -1,0 +1,3 @@
+$bbce1c74-535b-4221-9876-d1b259538932²Ò"id ÿÿÿÿÿÿÿÿÿ*string8Zdefault'docId ÿÿÿÿÿÿÿÿÿ*string8Zdefault'title ÿÿÿÿÿÿÿÿÿ*string8Zdefault%page ÿÿÿÿÿÿÿÿÿ*int328Zdefault&text ÿÿÿÿÿÿÿÿÿ*string8Zdefault?	embedding ÿÿÿÿÿÿÿÿÿ*fixed_size_list:float:15368Zdefault"!
+lance.auto_cleanup.interval20"'
+lance.auto_cleanup.older_than14days
