@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PDF Reader Chat",
+  "name": "Clarify",
   "version": "1.0.0",
-  "description": "Send selected text or prompts to a local PDF Reader server and view replies.",
+  "description": "Highlight. Ask. Understand. Clarify transforms text into answers that actually make sense.",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
