@@ -2,15 +2,20 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>PDF Reader</title>
+    <title>PDF Reader Chat</title>
     <style>
       body {
         font-family: system-ui, sans-serif;
         margin: 10px;
-        width: 320px;
+        width: 360px;
       }
       textarea {
         width: 100%;
+        box-sizing: border-box;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        resize: vertical;
       }
       .row {
         display: flex;
@@ -26,21 +31,66 @@
     </style>
   </head>
   <body>
-    <small id="hint">Tip: Select on the page first, then open this popup. On PDFs, click “Paste from Clipboard”.</small>
+    <small id="hint">Tip: Select on the page first, then open this popup. For PDFs, click “Paste from Clipboard”.</small>
 
-    <textarea id="input" placeholder="Selected or pasted text will appear here." rows="6"></textarea>
+    <textarea
+      id="contextText"
+      rows="6"
+      placeholder="Selected or pasted context will appear here."
+    ></textarea>
+
+    <!-- Question input -->
+    <label for="questionInput" style="display:block; margin-top:12px; font-weight:600;">
+      Your question (answered using the context above)
+    </label>
+    <textarea
+      id="questionText"
+      rows="2"
+      placeholder="e.g., Summarize the key points, or What does this imply about X?"
+    ></textarea>
+
+    <!-- Answer only from context (opt-in) -->
+    <div class="row" style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="strictContext" />
+      <label for="strictContext" title="If checked, the assistant must only use the pasted context and reply 'I don’t know' if the answer isn't there.">
+        Answer only from context
+      </label>
+    </div>
+
+    <!-- Estimated tokens (live) -->
+    <div id="tokenSummary" style="margin-top:12px; padding:8px; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa;">
+      <div style="font-weight:600; margin-bottom:6px;">Estimated tokens (approx)</div>
+      <div id="tokenLines" style="font-size:12px; line-height:1.4;">
+        <div>Context: <span id="tokensContext">0</span></div>
+        <div>Question: <span id="tokensQuestion">0</span></div>
+        <div style="margin-top:4px; border-top:1px dashed #ddd; padding-top:4px;">
+          Total: <span id="tokensTotal" style="font-weight:600;">0</span>
+        </div>
+      </div>
+    </div>
 
     <div class="row">
       <button id="btnUseSelection" type="button">Use Page Selection</button>
       <button id="btnPasteClipboard" type="button">Paste from Clipboard</button>
-      <input id="max" type="number" min="64" max="4096" step="64" value="512" title="Max tokens" style="width:80px" />
-      <button id="send" type="button">Send</button>
+      <input
+        id="max"
+        type="number"
+        min="64"
+        max="4096"
+        step="64"
+        value="512"
+        title="Max tokens"
+        style="width:90px"
+      />
+      <button id="sendBtn" type="button">Send</button>
     </div>
 
     <div id="status"></div>
 
-    <label for="reply" style="display:block;margin-top:8px;font-size:12px;">Assistant reply</label>
-    <textarea id="reply" rows="8" readonly placeholder="Reply will appear here…"></textarea>
+    <label for="reply" style="display:block; margin-top:8px; font-size:12px;">
+      Assistant reply
+    </label>
+    <div id="replyBox" style="min-height:120px; border:1px solid #ddd; border-radius:6px; padding:8px; background:#f9fafb; white-space:pre-wrap;"></div>
 
     <script src="popup.js" defer></script>
   </body>

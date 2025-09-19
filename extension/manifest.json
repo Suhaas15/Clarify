@@ -14,18 +14,16 @@
     "type": "module"
   },
   "permissions": [
-    "contextMenus",
-    "scripting",
     "activeTab",
+    "scripting",
+    "contextMenus",
     "storage",
-    "notifications",
-    "clipboardRead"
+    "clipboardRead",
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>",
-    "http://localhost:8787/*",
-    "http://127.0.0.1:8787/*",
-    "http://[::1]:8787/*"
+    "http://localhost:8787/*"
   ],
   "content_scripts": [
     {
@@ -33,5 +31,8 @@
       "js": ["content.js"],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "icons": {
+    "128": "icons/icon128.png"
+  }
 }

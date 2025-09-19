@@ -1,100 +1,146 @@
 /* global chrome */
-const inputEl = document.getElementById("input");
-const maxEl = document.getElementById("max");
-const sendBtn = document.getElementById("send");
-const btnUseSelection = document.getElementById("btnUseSelection");
-const btnPasteClipboard = document.getElementById("btnPasteClipboard");
-const statusEl = document.getElementById("status");
-const replyEl = document.getElementById("reply");
+const contextText = document.getElementById('contextText');
+const questionText = document.getElementById('questionText');
+const maxInput = document.getElementById('max');
+const sendBtn = document.getElementById('sendBtn');
+const btnUseSelection = document.getElementById('btnUseSelection');
+const btnPasteClipboard = document.getElementById('btnPasteClipboard');
+const statusEl = document.getElementById('status');
+const replyBox = document.getElementById('replyBox');
+const strictToggle = document.getElementById('strictContext');
 
-function setStatus(msg = "", kind = "info") {
+function showStatus(msg, kind = 'info') {
   if (!statusEl) return;
-  let color;
-  if (typeof kind === "boolean") {
-    color = kind ? "#c00" : "#0a0";
-  } else {
-    color =
-      kind === "error"
-        ? "#c00"
-        : kind === "ok"
-        ? "#0a0"
-        : kind === "warn"
-        ? "#f59e0b"
-        : "#555";
-  }
+  const colors = {
+    pending: '#555',
+    ok: '#0a7f2e',
+    error: '#b00020',
+    warn: '#f59e0b',
+  };
   statusEl.textContent = msg;
-  statusEl.style.color = color;
+  statusEl.style.color = colors[kind] || '#555';
 }
 
-function clearReply() {
-  if (replyEl) replyEl.value = "";
+// --- Token estimation utilities ---
+function estimateTokens(text) {
+  if (!text) return 0;
+  return Math.ceil(text.length / 4);
 }
 
-btnUseSelection?.addEventListener("click", async () => {
-  setStatus("Reading selection…");
+function updateTokenSummary() {
+  const ctx = (contextText && contextText.value) || '';
+  const q = (questionText && questionText.value) || '';
+
+  const tCtx = estimateTokens(ctx);
+  const tQ = estimateTokens(q);
+  const tTotal = tCtx + tQ;
+
+  const ctxOut = document.getElementById('tokensContext');
+  const qOut = document.getElementById('tokensQuestion');
+  const totOut = document.getElementById('tokensTotal');
+
+  if (ctxOut) ctxOut.textContent = String(tCtx);
+  if (qOut) qOut.textContent = String(tQ);
+  if (totOut) totOut.textContent = String(tTotal);
+}
+
+function showError(msg) {
+  if (replyBox) replyBox.textContent = `Error: ${msg}`;
+}
+
+function showReply(text) {
+  if (replyBox) replyBox.textContent = text || '(no reply)';
+}
+
+function setBusy(busy) {
+  if (sendBtn) {
+    sendBtn.disabled = !!busy;
+    sendBtn.textContent = busy ? 'Sending…' : 'Send';
+  }
+}
+
+btnUseSelection?.addEventListener('click', async () => {
+  showStatus('Reading selection…', 'pending');
   try {
-    const resp = await chrome.runtime.sendMessage({ type: "POPUP_GET_SELECTION" });
+    const resp = await chrome.runtime.sendMessage({ type: 'POPUP_GET_SELECTION' });
     if (resp?.ok) {
-      inputEl.value = resp.text || "";
+      contextText.value = resp.text || '';
+      updateTokenSummary();
       if (!resp.text) {
-        setStatus("No text selected. Highlight on the page first.", "warn");
+        showStatus('No text selected. Highlight on the page first.', 'warn');
       } else {
-        setStatus("Selection captured.", "ok");
+        showStatus('Selection captured.', 'ok');
       }
-      inputEl.focus();
+      contextText.focus();
     } else if (resp?.pdfHint) {
-      setStatus(resp.error || "Selection unavailable. Use “Paste from Clipboard”.", "warn");
+      showStatus(resp.error || 'Selection unavailable. Use “Paste from Clipboard”.', 'warn');
     } else {
-      setStatus(resp?.error || "Failed to read selection.", "error");
+      showStatus(resp?.error || 'Failed to read selection.', 'error');
     }
   } catch (e) {
-    console.warn(e);
-    setStatus("Failed to read selection.", "error");
+    showStatus('Failed to read selection.', 'error');
   }
 });
 
-btnPasteClipboard?.addEventListener("click", async () => {
+btnPasteClipboard?.addEventListener('click', async () => {
   try {
-    const txt = await navigator.clipboard.readText();
-    if (txt?.trim()) {
-      inputEl.value = txt;
-      setStatus("Pasted from clipboard.", "ok");
+    const text = await navigator.clipboard.readText();
+    if (text?.trim()) {
+      contextText.value = text;
+      updateTokenSummary();
+      showStatus('Pasted from clipboard.', 'ok');
     } else {
-      setStatus("Clipboard is empty.", "warn");
+      showStatus('Clipboard is empty.', 'warn');
     }
   } catch (e) {
-    console.warn(e);
-    setStatus("Clipboard access denied. Allow permission then click again.", "error");
+    showStatus('Clipboard access denied. Allow permission then click again.', 'error');
   }
 });
 
-sendBtn?.addEventListener("click", async () => {
-  const text = (inputEl.value || "").trim();
-  if (!text) {
-    setStatus("Nothing to send.", "warn");
+if (contextText) {
+  contextText.addEventListener('input', updateTokenSummary);
+  contextText.addEventListener('change', updateTokenSummary);
+}
+if (questionText) {
+  questionText.addEventListener('input', updateTokenSummary);
+  questionText.addEventListener('change', updateTokenSummary);
+}
+
+sendBtn?.addEventListener('click', async () => {
+  const context = (contextText?.value || '').trim();
+  const question = (questionText?.value || '').trim();
+  const strict = !!strictToggle?.checked;
+
+  if (!context || !question) {
+    showError('Please provide both context and a question.');
     return;
   }
-  setStatus("Sending…");
-  clearReply();
+
+  setBusy(true);
+  showStatus('Sending…', 'pending');
+  showReply('');
+
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const res = await chrome.runtime.sendMessage({
-      type: "SEND_SELECTION",
-      text,
-      title: tab?.title || "From Chrome",
-      maxTokens: Number(maxEl.value || 0) || undefined,
+    const resp = await chrome.runtime.sendMessage({
+      type: 'CHAT_WITH_CONTEXT',
+      context,
+      question,
+      strict,
     });
-    if (!res?.ok) throw new Error(res?.error || "Failed");
-    if (res.reply) {
-      replyEl.value = res.reply;
-      setStatus("Sent ✓ Reply received.", "ok");
+
+    if (resp?.error) {
+      showError(resp.error);
+      showStatus('Failed.', 'error');
     } else {
-      setStatus("Reply received but empty. Showing raw response.", "warn");
-      replyEl.value = res.raw
-        ? JSON.stringify(res.raw, null, 2)
-        : res.rawText || "(no payload)";
+      showReply(resp?.text || resp?.reply || '(no reply)');
+      showStatus('Reply received.', 'ok');
     }
   } catch (e) {
-    setStatus("Failed: " + (e?.message || e), "error");
+    showError(e?.message || 'Request failed');
+    showStatus('Failed.', 'error');
+  } finally {
+    setBusy(false);
   }
 });
+
+updateTokenSummary();

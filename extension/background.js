@@ -1,5 +1,4 @@
 /* global chrome */
-const MENU_ID = "send-to-pdf-reader";
 const API_BASES = [
   "http://localhost:8787",
   "http://127.0.0.1:8787",
@@ -136,45 +135,6 @@ async function chatText(text, maxTokens, signal) {
   return { reply, json, rawText, base };
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: MENU_ID,
-    title: "Send to PDF Reader",
-    contexts: ["selection"]
-  });
-});
-
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== MENU_ID) return;
-  const text = info.selectionText || "";
-  if (!text.trim()) {
-    chrome.notifications?.create({
-      type: "basic",
-      iconUrl: "icons/icon128.png",
-      title: "PDF Reader",
-      message: "No selection detected. Copy text, then use the popup's Paste button.",
-    });
-    return;
-  }
-  try {
-    await embedText(text, tab?.title || "From page");
-    const { reply } = await chatText(`Summarize briefly:\n\n${text}`, 256);
-    chrome.notifications?.create({
-      type: "basic",
-      iconUrl: "icons/icon128.png",
-      title: "PDF Reader",
-      message: reply || "Sent to PDF Reader.",
-    });
-  } catch (e) {
-    chrome.notifications?.create({
-      type: "basic",
-      iconUrl: "icons/icon128.png",
-      title: "PDF Reader",
-      message: "Send failed: " + (e?.message || e),
-    });
-  }
-});
-
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "POPUP_GET_SELECTION") {
     (async () => {
@@ -200,43 +160,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     })();
     return true;
   }
-
-  if (msg?.type === "SEND_SELECTION") {
+  if (msg?.type === "CHAT_WITH_CONTEXT") {
     (async () => {
       try {
-        const { text, title, maxTokens } = msg;
-        if (!text?.trim()) {
-          sendResponse({ ok: false, error: "No text to send." });
-          return;
-        }
-        try {
-          await healthCheck();
-        } catch (e) {
-          sendResponse({
-            ok: false,
-            error:
-              "Server not reachable at localhost/127.0.0.1/[::1]:8787. Is it running? (" +
-              (e?.message || e) +
-              ")",
-          });
-          return;
-        }
-        try {
-          await embedText(text, title);
-        } catch (e) {
-          console.warn("[bg] embed failed:", e?.message || e);
-        }
-        const { reply, json, rawText, base } = await chatText(text, maxTokens);
-        sendResponse({
-          ok: true,
-          reply: reply || "",
-          raw: json || null,
-          rawText: rawText || "",
-          base,
+        const r = await fetch("http://localhost:8787/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            context: msg.context,
+            question: msg.question,
+            strict: !!msg.strict,
+          }),
         });
+
+        const json = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(json?.error || `chat failed (${r.status})`);
+
+        sendResponse({ text: json.reply ?? json.text ?? "" });
       } catch (e) {
-        console.error("[bg] SEND_SELECTION error:", e);
-        sendResponse({ ok: false, error: e?.message || String(e) });
+        sendResponse({ error: e?.message || "background failed" });
       }
     })();
     return true;

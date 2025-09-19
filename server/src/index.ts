@@ -8,24 +8,17 @@ import { db } from './db';
 import { openai } from './openaiClient';
 
 const app = express();
-app.use(cors({
-  origin: true,
-  credentials: false,
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type'],
-}));
-app.use(bodyParser.json());
+app.use(cors({ origin: true, credentials: false }));
+app.use(bodyParser.json({ limit: '2mb' }));
 
-app.get('/health', async (_req, res) => {
-  try {
-    // OpenAI health: tiny embed
-    await embedTexts(['ping']);
-    // OpenRouter health: tiny chat
-    const reply = await chat([{ role: 'user', content: 'ping' }]);
-    res.status(200).json({ ok: true, providers: { openai: true, openrouter: true }, reply });
-  } catch (err: any) {
-    res.status(500).json({ ok: false, error: err?.message || String(err) });
-  }
+app.get('/health', (_req, res) => {
+  console.log('[health] openai:', !!CONFIG.OPENAI_API_KEY, 'openrouter:', !!CONFIG.OPENROUTER_API_KEY, 'model:', CONFIG.CHAT_MODEL);
+  res.json({
+    ok: true,
+    providers: { openai: !!CONFIG.OPENAI_API_KEY, openrouter: !!CONFIG.OPENROUTER_API_KEY },
+    chatModel: CONFIG.CHAT_MODEL,
+    base: CONFIG.OPENROUTER_BASE_URL,
+  });
 });
 
 app.post('/embed', async (req, res) => {
@@ -68,31 +61,7 @@ app.post('/embed', async (req, res) => {
   }
 });
 
-app.post('/chat', async (req, res) => {
-  try {
-    const { messages } = req.body || {};
-    if (!Array.isArray(messages) || messages.length === 0) {
-      throw new Error('`messages` must be a non-empty array');
-    }
-    const content = await chat(messages);
-    res.status(200).json({ content });
-  } catch (err: any) {
-    let detail: string | undefined;
-    const rawDetail = err?.response?.data ?? err?.data ?? err?.response?.body;
-    if (rawDetail) {
-      if (typeof rawDetail === 'string') {
-        detail = rawDetail;
-      } else {
-        try {
-          detail = JSON.stringify(rawDetail);
-        } catch {
-          detail = String(rawDetail);
-        }
-      }
-    }
-    res.status(400).json({ error: err?.message || String(err), ...(detail ? { detail } : {}) });
-  }
-});
+app.post('/chat', chat);
 
 function fromBlobToFloat32(buf: Buffer): Float32Array {
   return new Float32Array(buf.buffer, buf.byteOffset, Math.floor(buf.byteLength / 4));
@@ -117,19 +86,16 @@ app.post('/search', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'docId and query are required' });
     }
 
-    // 1) embed the query
     const q = await openai.embeddings.create({
       model: CONFIG.MODEL_EMBED,
       input: [query],
     });
     const qVec = Float32Array.from(q.data[0].embedding as number[]);
 
-    // 2) load all vectors for docId
     const rows = db.prepare(
       `SELECT chunk_index, text, page, vector FROM embeddings WHERE doc_id = ?`
     ).all(docId) as { chunk_index: number, text: string, page: number | null, vector: Buffer }[];
 
-    // 3) score and sort
     const scored = rows.map(r => ({
       chunk_index: r.chunk_index,
       text: r.text,
