@@ -1,419 +1,227 @@
-<!-- <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>PDF Reader Chat</title>
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        margin: 10px;
-        width: 360px;
-      }
-      textarea {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        resize: vertical;
-      }
-      .row {
-        display: flex;
-        gap: 8px;
-        margin-top: 8px;
-        align-items: center;
-      }
-      #status {
-        margin: 8px 0;
-        color: #555;
-        word-break: break-word;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="popup-header" style="display: flex; align-items: center; margin-bottom: 10px;">
-      <img src="icons/icon128.png" alt="Clarify Icon" style="width: 32px; height: 32px; margin-right: 8px;" />
-      <h1 style="font-size: 18px; margin: 0; color: #333;">Clarify</h1>
-    </div>
-    <small id="hint">Tip: Select on the page first, then open this popup. For PDFs, click “Paste from Clipboard”.</small>
-
-    <textarea
-      id="contextText"
-      rows="6"
-      placeholder="Selected or pasted context will appear here."
-    ></textarea>
-
-    <label for="questionInput" style="display:block; margin-top:12px; font-weight:600;">
-      Your question (answered using the context above)
-    </label>
-    <textarea
-      id="questionText"
-      rows="2"
-      placeholder="e.g., Summarize the key points, or What does this imply about X?"
-    ></textarea>
-
-    <div class="row" style="margin-top:8px; display:flex; align-items:center; gap:8px;">
-      <input type="checkbox" id="strictContext" />
-      <label for="strictContext" title="If checked, the assistant must only use the pasted context and reply 'I don’t know' if the answer isn't there.">
-        Answer only from context
-      </label>
-    </div>
-
-    <div id="tokenSummary" style="margin-top:12px; padding:8px; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa;">
-      <div style="font-weight:600; margin-bottom:6px;">Estimated tokens (approx)</div>
-      <div id="tokenLines" style="font-size:12px; line-height:1.4;">
-        <div>Context: <span id="tokensContext">0</span></div>
-        <div>Question: <span id="tokensQuestion">0</span></div>
-        <div style="margin-top:4px; border-top:1px dashed #ddd; padding-top:4px;">
-          Total: <span id="tokensTotal" style="font-weight:600;">0</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <button id="btnUseSelection" type="button">Use Page Selection</button>
-      <button id="btnPasteClipboard" type="button">Paste from Clipboard</button>
-      <input
-        id="max"
-        type="number"
-        min="64"
-        max="4096"
-        step="64"
-        value="512"
-        title="Max tokens"
-        style="width:90px"
-      />
-      <button id="sendBtn" type="button">Send</button>
-    </div>
-
-    <div id="status"></div>
-
-    <label for="reply" style="display:block; margin-top:8px; font-size:12px;">
-      Assistant reply
-    </label>
-    <div id="replyBox" style="min-height:120px; border:1px solid #ddd; border-radius:6px; padding:8px; background:#f9fafb; white-space:pre-wrap;"></div>
-
-    <script src="popup.js" defer></script>
-  </body>
-</html> -->
 <!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <title>PDF Reader Chat</title>
     <style>
+      :root {
+        --popup-width: 420px;
+        --popup-height: 560px;
+        --gap: 10px;
+        --pad: 10px;
+        --radius: 8px;
+      }
+
       * {
-        margin: 0;
-        padding: 0;
         box-sizing: border-box;
       }
 
+      html,
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        width: 380px;
-        min-height: 500px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #333;
+        margin: 0;
+        padding: 0;
+        width: var(--popup-width);
+        height: var(--popup-height);
         overflow: hidden;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        color: #111827;
+        background: #ffffff;
       }
 
-      .container {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        margin: 12px;
-        padding: 20px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        min-height: calc(100vh - 24px);
+      .popup-root {
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        height: 100%;
+        padding: var(--pad);
+        gap: var(--gap);
       }
 
-      .header {
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        grid-template-rows: auto auto;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .controls .title {
+        grid-column: 1 / 4;
         display: flex;
         align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #f0f0f0;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
       }
 
       .logo {
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        width: 28px;
+        height: 28px;
         border-radius: 8px;
-        margin-right: 12px;
-        display: flex;
+        background: #111827;
+        color: #ffffff;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 18px;
+        font-weight: 600;
+        font-size: 16px;
       }
 
-      .title {
-        font-size: 22px;
-        font-weight: 700;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+      .controls button {
+        justify-self: end;
+      }
+
+      .controls .status {
+        grid-column: 1 / 4;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .controls .status {
+        color: #6b7280;
+      }
+
+      .controls .status.pending {
+        color: #4b5563;
+      }
+
+      .controls .status.ok {
+        color: #047857;
+      }
+
+      .controls .status.warn {
+        color: #b45309;
+      }
+
+      .controls .status.error {
+        color: #b91c1c;
       }
 
       .hint {
-        background: linear-gradient(135deg, #e8f4f8, #f0f8ff);
-        border: 1px solid #b3d9f2;
-        border-radius: 12px;
-        padding: 12px;
         font-size: 12px;
-        color: #2563eb;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .hint::before {
-        content: "💡";
-        font-size: 14px;
-      }
-
-      .form-group {
-        margin-bottom: 16px;
-      }
-
-      .label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #374151;
-        font-size: 14px;
-      }
-
-      .textarea {
-        width: 100%;
-        padding: 12px;
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        font-family: inherit;
-        font-size: 14px;
+        color: #6b7280;
         line-height: 1.4;
-        resize: vertical;
-        transition: all 0.2s ease;
+      }
+
+      .content {
+        display: grid;
+        grid-template-rows: 1fr 0.7fr 130px;
+        gap: var(--gap);
+        min-height: 0;
+        flex: 1 1 auto;
+      }
+
+      textarea#contextText,
+      textarea#questionText,
+      pre#replyBox {
+        width: 100%;
+        min-height: 0;
+        max-height: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: var(--radius);
+        padding: 10px;
+        font-size: 13px;
+        line-height: 1.35;
         background: #fafafa;
       }
 
-      .textarea:focus {
-        outline: none;
-        border-color: #667eea;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      textarea#contextText,
+      textarea#questionText {
+        resize: none;
+        overflow: auto;
       }
 
-      .checkbox-group {
+      textarea::placeholder {
+        color: #9ca3af;
+      }
+
+      pre#replyBox {
+        margin: 0;
+        overflow: auto;
+        background: #f8fafc;
+        color: #374151;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .meta {
+        display: flex;
+        gap: 10px;
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      .meta span {
+        display: inline-flex;
+        gap: 4px;
+      }
+
+      .actions {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-bottom: 16px;
-        padding: 8px;
-        background: #f8fafc;
-        border-radius: 8px;
       }
 
-      .checkbox {
-        width: 18px;
-        height: 18px;
-        accent-color: #667eea;
-      }
-
-      .checkbox-label {
-        font-size: 13px;
-        color: #64748b;
-        cursor: pointer;
-      }
-
-      .token-card {
-        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
-      }
-
-      .token-title {
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #475569;
-        font-size: 14px;
-        display: flex;
+      .actions label {
+        display: inline-flex;
         align-items: center;
         gap: 6px;
+        font-size: 12px;
+        color: #374151;
       }
 
-      .token-title::before {
-        content: "🔢";
-      }
-
-      .token-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+      .actions .right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
         gap: 8px;
+      }
+
+      button,
+      .btn {
+        cursor: pointer;
+        border: 1px solid #e5e7eb;
+        background: #111827;
+        color: #ffffff;
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      #max {
+        width: 82px;
+        padding: 6px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
         font-size: 12px;
       }
 
-      .token-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 4px 0;
-      }
-
-      .token-total {
-        grid-column: 1 / -1;
-        border-top: 1px dashed #94a3b8;
-        padding-top: 8px;
-        margin-top: 4px;
-        font-weight: 600;
-        color: #1e293b;
-      }
-
-      .button-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
-
-      .button-row.single {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .btn {
-        padding: 10px 16px;
-        border: none;
-        border-radius: 10px;
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-      }
-
-      .btn-primary:disabled {
-        opacity: 0.6;
-        transform: none;
-        cursor: not-allowed;
-      }
-
-      .btn-secondary {
-        background: white;
-        color: #667eea;
-        border: 2px solid #667eea;
-      }
-
-      .btn-secondary:hover {
-        background: #667eea;
-        color: white;
-        transform: translateY(-1px);
-      }
-
-      .max-input {
-        width: 90px;
-        padding: 8px 12px;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 13px;
-        text-align: center;
-      }
-
-      .max-input:focus {
-        outline: none;
-        border-color: #667eea;
-      }
-
-      .status {
-        margin: 12px 0;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        text-align: center;
-        transition: all 0.3s ease;
-      }
-
-      .status.pending {
-        background: #fef3c7;
-        color: #92400e;
-        border: 1px solid #fcd34d;
-      }
-
-      .status.ok {
-        background: #d1fae5;
-        color: #065f46;
-        border: 1px solid #6ee7b7;
-      }
-
-      .status.error {
-        background: #fecaca;
-        color: #991b1b;
-        border: 1px solid #f87171;
-      }
-
-      .status.warn {
-        background: #fed7aa;
-        color: #9a3412;
-        border: 1px solid #fb923c;
-      }
-
-      .reply-section {
-        margin-top: 16px;
-      }
-
-      .reply-box {
-        min-height: 120px;
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 16px;
-        white-space: pre-wrap;
-        font-size: 14px;
-        line-height: 1.5;
-        color: #374151;
-        overflow-y: auto;
-        max-height: 200px;
-      }
-
-      .reply-box:empty::before {
-        content: "Assistant reply will appear here...";
-        color: #9ca3af;
-        font-style: italic;
-      }
-
-      /* Loading animation */
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+      input[type='checkbox'] {
+        width: 14px;
+        height: 14px;
       }
 
       .loading {
         animation: pulse 1.5s ease-in-out infinite;
       }
 
-      /* Scrollbar styling */
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
       ::-webkit-scrollbar {
         width: 6px;
       }
@@ -431,95 +239,69 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
       }
+
+      @media (max-height: 600px) {
+        :root {
+          --popup-height: 520px;
+        }
+
+        .content {
+          grid-template-rows: 1fr 0.6fr 120px;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <div class="logo">C</div>
-        <h1 class="title">Clarify</h1>
+    <div class="popup-root">
+      <div class="controls">
+        <div class="title">
+          <div class="logo">C</div>
+          <span>Clarify</span>
+        </div>
+        <button id="btnUseSelection" type="button">Use Page Selection</button>
+        <button id="btnPasteClipboard" type="button">Paste from Clipboard</button>
+        <div id="status" class="status" style="display: none;"></div>
       </div>
 
       <div class="hint">
-        Select text on the page first, then open this popup. For PDFs, use "Paste from Clipboard".
+        Tip: Select on the page first, then open this popup. For PDFs, click "Paste from Clipboard".
       </div>
 
-      <div class="form-group">
-        <label class="label" for="contextText">Context</label>
+      <div class="content">
         <textarea
           id="contextText"
-          class="textarea"
-          rows="6"
-          placeholder="Selected or pasted context will appear here..."
+          placeholder="Selected or pasted context will appear here."
         ></textarea>
-      </div>
-
-      <div class="form-group">
-        <label class="label" for="questionText">Your Question</label>
         <textarea
           id="questionText"
-          class="textarea"
-          rows="2"
           placeholder="e.g., Summarize the key points, or What does this imply about X?"
         ></textarea>
+        <pre id="replyBox"></pre>
       </div>
 
-      <div class="checkbox-group">
-        <input type="checkbox" id="strictContext" class="checkbox" />
-        <label for="strictContext" class="checkbox-label">
-          Answer only from context (strict mode)
+      <div class="meta">
+        <span>Context: <span id="tokensContext">0</span></span>
+        <span>Question: <span id="tokensQuestion">0</span></span>
+        <span>Total: <span id="tokensTotal">0</span></span>
+      </div>
+
+      <div class="actions">
+        <label for="strictContext">
+          <input type="checkbox" id="strictContext" />
+          Answer only from context
         </label>
-      </div>
-
-      <div class="token-card">
-        <div class="token-title">Token Estimation</div>
-        <div class="token-grid">
-          <div class="token-item">
-            <span>Context:</span>
-            <span id="tokensContext">0</span>
-          </div>
-          <div class="token-item">
-            <span>Question:</span>
-            <span id="tokensQuestion">0</span>
-          </div>
-          <div class="token-item token-total">
-            <span>Total:</span>
-            <span id="tokensTotal">0</span>
-          </div>
+        <div class="right">
+          <input
+            id="max"
+            type="number"
+            min="64"
+            max="4096"
+            step="64"
+            value="512"
+            title="Max tokens"
+          />
+          <button id="sendBtn" type="button">✨ Send</button>
         </div>
-      </div>
-
-      <div class="button-row">
-        <button id="btnUseSelection" type="button" class="btn btn-secondary">
-          📄 Use Selection
-        </button>
-        <button id="btnPasteClipboard" type="button" class="btn btn-secondary">
-          📋 Paste Clipboard
-        </button>
-      </div>
-
-      <div class="button-row single">
-        <input
-          id="max"
-          type="number"
-          min="64"
-          max="4096"
-          step="64"
-          value="512"
-          title="Max tokens"
-          class="max-input"
-          placeholder="Max tokens"
-        />
-        <button id="sendBtn" type="button" class="btn btn-primary" style="flex: 1;">
-          ✨ Send
-        </button>
-      </div>
-
-      <div id="status" class="status" style="display: none;"></div>
-
-      <div class="reply-section">
-        <label class="label">Assistant Reply</label>
-        <div id="replyBox" class="reply-box"></div>
       </div>
     </div>
 

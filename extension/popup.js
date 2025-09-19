@@ -156,6 +156,14 @@ const statusEl = document.getElementById('status');
 const replyBox = document.getElementById('replyBox');
 const strictToggle = document.getElementById('strictContext');
 
+document.addEventListener('DOMContentLoaded', () => {
+  // Force a reflow so the grid sizes correctly on open
+  requestAnimationFrame(() => {
+    // No-op: touching computed style triggers layout on some Chrome builds
+    void document.body.offsetHeight;
+  });
+});
+
 function showStatus(msg, kind = 'info') {
   if (!statusEl) return;
   statusEl.textContent = msg;
