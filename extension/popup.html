@@ -1,310 +1,124 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>PDF Reader Chat</title>
-    <style>
-      :root {
-        --popup-width: 420px;
-        --popup-height: 560px;
-        --gap: 10px;
-        --pad: 10px;
-        --radius: 8px;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        width: var(--popup-width);
-        height: var(--popup-height);
-        overflow: hidden;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        color: #111827;
-        background: #ffffff;
-      }
-
-      .popup-root {
-        display: flex;
-        flex-direction: column;
-        box-sizing: border-box;
-        height: 100%;
-        padding: var(--pad);
-        gap: var(--gap);
-      }
-
-      .controls {
-        display: grid;
-        grid-template-columns: 1fr auto auto;
-        grid-template-rows: auto auto;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .controls .title {
-        grid-column: 1 / 4;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        font-size: 14px;
-      }
-
-      .logo {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        background: #111827;
-        color: #ffffff;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 16px;
-      }
-
-      .controls button {
-        justify-self: end;
-      }
-
-      .controls .status {
-        grid-column: 1 / 4;
-        font-size: 12px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .controls .status {
-        color: #6b7280;
-      }
-
-      .controls .status.pending {
-        color: #4b5563;
-      }
-
-      .controls .status.ok {
-        color: #047857;
-      }
-
-      .controls .status.warn {
-        color: #b45309;
-      }
-
-      .controls .status.error {
-        color: #b91c1c;
-      }
-
-      .hint {
-        font-size: 12px;
-        color: #6b7280;
-        line-height: 1.4;
-      }
-
-      .content {
-        display: grid;
-        grid-template-rows: 1fr 0.7fr 130px;
-        gap: var(--gap);
-        min-height: 0;
-        flex: 1 1 auto;
-      }
-
-      textarea#contextText,
-      textarea#questionText,
-      pre#replyBox {
-        width: 100%;
-        min-height: 0;
-        max-height: 100%;
-        border: 1px solid #e5e7eb;
-        border-radius: var(--radius);
-        padding: 10px;
-        font-size: 13px;
-        line-height: 1.35;
-        background: #fafafa;
-      }
-
-      textarea#contextText,
-      textarea#questionText {
-        resize: none;
-        overflow: auto;
-      }
-
-      textarea::placeholder {
-        color: #9ca3af;
-      }
-
-      pre#replyBox {
-        margin: 0;
-        overflow: auto;
-        background: #f8fafc;
-        color: #374151;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-
-      .meta {
-        display: flex;
-        gap: 10px;
-        font-size: 12px;
-        color: #6b7280;
-      }
-
-      .meta span {
-        display: inline-flex;
-        gap: 4px;
-      }
-
-      .actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .actions label {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: #374151;
-      }
-
-      .actions .right {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      button,
-      .btn {
-        cursor: pointer;
-        border: 1px solid #e5e7eb;
-        background: #111827;
-        color: #ffffff;
-        padding: 8px 10px;
-        font-size: 12px;
-        border-radius: 6px;
-      }
-
-      button:disabled {
-        opacity: 0.5;
-        cursor: default;
-      }
-
-      #max {
-        width: 82px;
-        padding: 6px 8px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 12px;
-      }
-
-      input[type='checkbox'] {
-        width: 14px;
-        height: 14px;
-      }
-
-      .loading {
-        animation: pulse 1.5s ease-in-out infinite;
-      }
-
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
-      }
-
-      ::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: #f1f5f9;
-        border-radius: 3px;
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-
-      @media (max-height: 600px) {
-        :root {
-          --popup-height: 520px;
-        }
-
-        .content {
-          grid-template-rows: 1fr 0.6fr 120px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="popup-root">
-      <div class="controls">
-        <div class="title">
-          <div class="logo">C</div>
-          <span>Clarify</span>
-        </div>
-        <button id="btnUseSelection" type="button">Use Page Selection</button>
-        <button id="btnPasteClipboard" type="button">Paste from Clipboard</button>
-        <div id="status" class="status" style="display: none;"></div>
-      </div>
-
-      <div class="hint">
-        Tip: Select on the page first, then open this popup. For PDFs, click "Paste from Clipboard".
-      </div>
-
-      <div class="content">
-        <textarea
-          id="contextText"
-          placeholder="Selected or pasted context will appear here."
-        ></textarea>
-        <textarea
-          id="questionText"
-          placeholder="e.g., Summarize the key points, or What does this imply about X?"
-        ></textarea>
-        <pre id="replyBox"></pre>
-      </div>
-
-      <div class="meta">
-        <span>Context: <span id="tokensContext">0</span></span>
-        <span>Question: <span id="tokensQuestion">0</span></span>
-        <span>Total: <span id="tokensTotal">0</span></span>
-      </div>
-
-      <div class="actions">
-        <label for="strictContext">
-          <input type="checkbox" id="strictContext" />
-          Answer only from context
-        </label>
-        <div class="right">
-          <input
-            id="max"
-            type="number"
-            min="64"
-            max="4096"
-            step="64"
-            value="512"
-            title="Max tokens"
-          />
-          <button id="sendBtn" type="button">✨ Send</button>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Clarify</title>
+<style>
+  :root{
+    --brand:#5a54f7;
+    --ink:#1f2430;
+    --muted:#6b7280;
+    --bg:#ffffff;
+    --panel:#f7f8fc;
+    --stroke:#e5e7eb;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    overflow:hidden; /* no popup scroll; internal areas will scroll when needed */
+  }
+  /* A popup that fits well on laptop and doesn’t cause horizontal scroll */
+  .wrap{
+    width:420px;              /* stable width that won’t clip */
+    max-width:420px;
+    padding:14px 16px 12px;
+  }
+  .hdr{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .hdr img{ width:24px; height:24px; border-radius:6px; }
+  .hdr .t1{ font-weight:700; font-size:16px; }
+  .subt{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .tip{
+    background:linear-gradient(180deg,#f4f6ff,#eef1ff);
+    border:1px solid var(--stroke);
+    border-radius:12px; padding:12px 14px; margin:8px 0 12px;
+  }
+  .row{ display:flex; gap:12px; margin:0 0 12px; }
+  .btn{
+    flex:1 1 0;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 10px; border:1px solid var(--stroke); border-radius:12px;
+    background:#fff; cursor:pointer; font-weight:600;
+  }
+  .btn:hover{ border-color:#cdd2d8; }
+  .label{
+    display:flex; align-items:center; gap:8px; margin:12px 0 6px; font-weight:700;
+  }
+  .badge{ color:#4f46e5; background:#eef2ff; border:1px solid #e0e7ff; font-size:12px; padding:2px 6px; border-radius:999px; }
+  textarea, .mono{
+    width:100%;
+    border:1px solid var(--stroke);
+    background:#fbfcff;
+    border-radius:12px; padding:12px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size:14px; line-height:1.45; color:#0f172a;
+    resize:none; overflow:auto;
+  }
+  textarea::placeholder{ color:#9aa3af; }
+  .stats{
+    display:flex; gap:18px; align-items:center;
+    color:var(--muted); margin:10px 0 0;
+  }
+  .stats b{ color:#111827; }
+  .foot{
+    display:flex; align-items:center; gap:12px; margin-top:12px;
+  }
+  .foot .grow{ flex:1; }
+  .num{ width:110px; padding:10px 12px; border:1px solid var(--stroke); border-radius:10px; }
+  .send{
+    padding:12px 18px; border-radius:14px; border:0; color:#fff; background:#111827;
+    font-weight:700; cursor:pointer; box-shadow:0 6px 18px rgba(17,24,39,.18);
+  }
+  .send[disabled]{ opacity:.6; cursor:not-allowed; }
+  .hint{ margin:8px 0 2px; color:#6b7280; font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hdr">
+      <img src="icons/icon128.png" alt="Clarify"/>
+      <div>
+        <div class="t1">Clarify</div>
+        <div class="subt">Ask with Context</div>
       </div>
     </div>
 
-    <script src="popup.js" defer></script>
-  </body>
+    <div class="tip">💡 Select text on any webpage, then click <b>“Use Selection”</b>. For PDFs, copy and click <b>“Paste Clipboard”</b>.</div>
+
+    <div class="row">
+      <button id="btnUse" class="btn">📄 Use Selection</button>
+      <button id="btnPaste" class="btn">📋 Paste Clipboard</button>
+    </div>
+
+    <div class="label">🖊️ Context <span class="badge">Required</span></div>
+    <textarea id="ctx" placeholder="Your selected text or pasted content will appear here." rows="5"></textarea>
+
+    <div class="label">❓ Your Question <span class="badge">Required</span></div>
+    <textarea id="q" placeholder="Ask about the context above (e.g., Summarize this, Key points, Explain X)…" rows="4"></textarea>
+
+    <div class="label">🤖 Assistant Reply</div>
+    <textarea id="reply" placeholder="Assistant reply will appear here…" rows="5" readonly></textarea>
+
+    <div class="stats">
+      <div>Context: <b id="sCtx">0</b></div>
+      <div>Question: <b id="sQ">0</b></div>
+      <div>Total: <b id="sTot">0</b></div>
+    </div>
+
+    <div class="foot">
+      <label class="grow" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="strict"/>
+        <span>Answer only from context</span>
+      </label>
+      <input id="maxTok" class="num" type="number" min="16" max="8192" step="1" value="512"/>
+      <button id="send" class="send">✨ Send</button>
+    </div>
+
+    <div class="hint">Tip: Use Ctrl+Enter to send quickly</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
 </html>
