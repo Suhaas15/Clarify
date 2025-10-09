@@ -77,7 +77,7 @@
 </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="wrap" style="overflow-x:hidden;">
     <div class="hdr">
       <img src="icons/icon128.png" alt="Clarify"/>
       <div>
@@ -94,27 +94,39 @@
     </div>
 
     <div class="label">🖊️ Context <span class="badge">Required</span></div>
-    <textarea id="ctx" placeholder="Your selected text or pasted content will appear here." rows="5"></textarea>
+    <textarea id="context" placeholder="Paste or insert page selection…" rows="5"></textarea>
 
     <div class="label">❓ Your Question <span class="badge">Required</span></div>
-    <textarea id="q" placeholder="Ask about the context above (e.g., Summarize this, Key points, Explain X)…" rows="4"></textarea>
+    <textarea id="question" placeholder="Ask your question…" rows="4"></textarea>
 
     <div class="label">🤖 Assistant Reply</div>
-    <textarea id="reply" placeholder="Assistant reply will appear here…" rows="5" readonly></textarea>
+    <div id="status" aria-live="polite" style="min-height:18px;color:#6b7280;margin:6px 0 4px;"></div>
+    <textarea id="answer"
+      placeholder="The answer will appear here…"
+      readonly
+      style="
+        width: 100%;
+        min-height: 120px;
+        max-height: 280px;
+        overflow: auto;
+        resize: vertical;
+        line-height: 1.4;
+      "
+    ></textarea>
 
     <div class="stats">
       <div>Context: <b id="sCtx">0</b></div>
       <div>Question: <b id="sQ">0</b></div>
-      <div>Total: <b id="sTot">0</b></div>
+      <div>Total: <b id="tokenCount">0</b></div>
     </div>
 
     <div class="foot">
       <label class="grow" style="display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="strict"/>
+        <input type="checkbox" id="fromContext"/>
         <span>Answer only from context</span>
       </label>
-      <input id="maxTok" class="num" type="number" min="16" max="8192" step="1" value="512"/>
-      <button id="send" class="send">✨ Send</button>
+      <input id="maxTokens" class="num" type="number" min="16" max="8192" step="1" value="1024"/>
+      <button id="sendBtn" class="send">✨ Send</button>
     </div>
 
     <div class="hint">Tip: Use Ctrl+Enter to send quickly</div>

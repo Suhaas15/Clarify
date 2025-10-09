@@ -1,88 +1,77 @@
-import type { Request, Response } from 'express';
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { openrouter } from './openrouterClient';
-import { CONFIG } from './config';
-
-const STRICT_PROMPT =
-  "You are a careful assistant. Answer ONLY using the provided CONTEXT. If the answer is not in the context, reply: \"I don't know from the provided context.\"";
-const DEFAULT_PROMPT =
-  'You are a helpful assistant. Prefer the provided CONTEXT, but you may use general knowledge if needed. Cite clearly when the context is insufficient.';
-
-export async function chatWithMessages(
-  messages: ChatCompletionMessageParam[],
-  maxTokens?: number,
-  fromContext = false
-) {
-  const max = Math.min(
-    Number(maxTokens ?? CONFIG.CHAT_MAX_TOKENS) || CONFIG.CHAT_MAX_TOKENS,
-    CONFIG.CHAT_MAX_TOKENS
-  );
-
-  console.log(
-    `[chat] provider=OpenRouter base=${CONFIG.OPENROUTER_BASE_URL} model=${CONFIG.CHAT_MODEL} max=${max} fromContext=${fromContext}`
-  );
-
-  const completion = await openrouter.chat.completions.create({
-    model: CONFIG.CHAT_MODEL,
-    messages,
-    max_tokens: max,
-  });
-
-  const reply = completion.choices?.[0]?.message?.content?.trim?.() ?? '';
-  return { reply: reply || '(no model reply)', usage: completion.usage };
-}
-
-export async function answerWithContext(context: string, question: string, strict: boolean) {
-  const sys = strict ? STRICT_PROMPT : DEFAULT_PROMPT;
-
-  const messages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: sys },
-    { role: 'user', content: `CONTEXT:\n${context}\n\nQUESTION: ${question}` },
-  ];
-
-  return chatWithMessages(messages, CONFIG.CHAT_MAX_TOKENS, true);
-}
+import type { Request, Response } from "express";
+import { CONFIG } from "./config";
 
 export async function chat(req: Request, res: Response) {
   try {
-    const body = (req.body ?? {}) as {
-      messages?: ChatCompletionMessageParam[];
-      max_tokens?: number;
-      fromContext?: boolean;
-      context?: string;
-      question?: string;
-      strict?: boolean;
-    };
+    const { question: rawQuestion, context: rawContext, fromContext: rawFromContext, max: rawMax } = req.body ?? {};
+    const question = typeof rawQuestion === 'string' ? rawQuestion : '';
+    const context = typeof rawContext === 'string' ? rawContext : '';
+    const fromContext = Boolean(rawFromContext);
+    const maxTokens = Number.isFinite(rawMax) ? Math.max(64, Math.min(4096, Number(rawMax))) : 512;
 
-    const context = body.context?.toString?.();
-    const question = body.question?.toString?.();
-    const strict = Boolean(body.strict);
+    const trimmedQuestion = question.trim();
+    const trimmedContext = context.trim();
 
-    if (context && question) {
-      const result = await answerWithContext(context, question, strict);
-      console.log(
-        '[chat] reply(sample):',
-        (result.reply ?? '').slice(0, 120).replace(/\s+/g, ' '),
-        '...'
-      );
-      return res.json({ ok: true, reply: result.reply, usage: result.usage });
+    if (!trimmedQuestion && !trimmedContext) {
+      return res.status(400).json({ error: 'Missing question or context' });
     }
 
-    const messages = Array.isArray(body.messages) ? body.messages : undefined;
-    if (!messages || messages.length === 0) {
-      return res.status(400).json({ ok: false, error: 'Missing field: context/question or messages' });
+    const SYSTEM_BASE = fromContext
+      ? 'You answer ONLY using the provided CONTEXT. If the answer is not in CONTEXT, say "I couldn’t find that in the provided context." Return plain text only.'
+      : 'Be helpful and concise. Prefer the user-provided CONTEXT when relevant. Return plain text only, no hidden reasoning.';
+
+    const messages: Array<{ role: 'system' | 'user'; content: string }> = [
+      { role: 'system', content: SYSTEM_BASE }
+    ];
+
+    if (trimmedContext) {
+      messages.push({
+        role: 'user',
+        content: `CONTEXT:\n${trimmedContext}`
+      });
     }
 
-    const result = await chatWithMessages(messages, body.max_tokens, Boolean(body.fromContext));
-    console.log(
-      '[chat] reply(sample):',
-      (result.reply ?? '').slice(0, 120).replace(/\s+/g, ' '),
-      '...'
-    );
-    return res.json({ ok: true, reply: result.reply, usage: result.usage });
+    messages.push({
+      role: 'user',
+      content: trimmedQuestion || 'Please respond.'
+    });
+
+    const baseUrl = (CONFIG.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${CONFIG.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': CONFIG.HTTP_REFERER || 'http://localhost:8787',
+        'X-Title': CONFIG.X_TITLE || 'clarify-dev'
+      },
+      body: JSON.stringify({
+        model: CONFIG.CHAT_MODEL,
+        messages,
+        max_output_tokens: maxTokens,
+        temperature: 0.2
+      })
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data) {
+      const detail = data && data.error ? `: ${data.error}` : '';
+      return res.status(resp.status || 502).json({ error: `Backend error ${resp.status || 502}${detail}` });
+    }
+
+    const content =
+      data?.choices?.[0]?.message?.content?.toString?.().trim?.() ||
+      '';
+
+    if (!content) {
+      console.error('No assistant text found. Provider response:', JSON.stringify(data, null, 2));
+      return res.status(502).json({ error: 'No assistant text in provider response.' });
+    }
+
+    return res.json({ content });
   } catch (err: any) {
-    const msg = err?.response?.data?.error?.message || err?.message || 'unknown error';
-    console.error('[chat] ERROR:', msg, err?.response?.data || '');
-    return res.status(400).json({ ok: false, error: msg });
+    console.error("[/chat] error:", err?.message || err);
+    return res.status(500).json({ error: "Chat failed" });
   }
 }
