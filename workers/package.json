@@ -1,0 +1,16 @@
+{
+  "name": "clarify-workers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply CLARIFY_DB --local=false"
+  },
+  "dependencies": {
+    "hono": "^3.12.12",
+    "openai": "^4.50.0",
+    "undici": "^6.18.1"
+  }
+}

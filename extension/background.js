@@ -1,4 +1,5 @@
-const CHAT_URL = 'http://localhost:8787/chat';
+const API_BASE = 'https://clarify.clarify-ai.workers.dev';
+const CHAT_URL = `${API_BASE}/chat`;
 let lastSelection = '';
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

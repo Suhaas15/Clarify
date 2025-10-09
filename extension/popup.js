@@ -1,3 +1,4 @@
+const API_BASE = 'https://clarify.clarify-ai.workers.dev';
 const DEFAULT_MAX_TOKENS = 1024;
 
 function resetEphemeralFields() {
@@ -149,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (statusEl) statusEl.textContent = 'Sending...';
 
       try {
-        const resp = await fetch('http://localhost:8787/chat', {
+        const resp = await fetch(`${API_BASE}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question, context, fromContext, max })

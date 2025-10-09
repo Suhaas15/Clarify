@@ -1,0 +1,21 @@
+name = "clarify"
+main = "src/index.ts"
+compatibility_date = "2024-11-06"
+
+# Optional: if you’re using a custom domain/route, add it here
+# routes = [{ pattern = "clarify.yourdomain.com", custom_domain = true }]
+
+# CORS env (if you read from env in the Worker)
+[vars]
+CORS_ALLOW_ORIGINS = "chrome-extension://*, https://clarify.app"
+
+# D1 binding — FIXED: uses database_id (not id)
+[[d1_databases]]
+binding = "CLARIFY_DB"
+database_name = "CLARIFY_DB"
+database_id = "d99fef2b-f216-49da-9b5a-29b79b57a13c"
+# Optional (useful for `wrangler dev`):
+# preview_database_id = "REPLACE_WITH_REAL_UUID"
+
+# If you use migrations, point to the directory:
+migrations_dir = "migrations"
