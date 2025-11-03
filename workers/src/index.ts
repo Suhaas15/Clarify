@@ -145,43 +145,50 @@ app.post('/chat', async (c) => {
       return json(c, 400, { error: 'Invalid JSON body' });
     }
 
-    const { question, context, fromContext, max } = body as {
-      question?: unknown;
-      context?: unknown;
-      fromContext?: unknown;
-      max?: unknown;
-    };
+    const questionRaw = body.question?.toString() ?? '';
+    const contextRaw = body.context?.toString() ?? '';
+    const fromContext = Boolean(body.fromContext);
+    const max = Math.min(Number(body.max) || 512, 4096);
 
-    if (typeof question !== 'string' || question.trim().length === 0) {
+    if (typeof questionRaw !== 'string' || questionRaw.trim().length === 0) {
       return json(c, 400, { error: "Missing or empty 'question' (string)" });
     }
 
-    const ctx = typeof context === 'string' ? context : '';
-    const onlyContext = Boolean(fromContext);
-    const maxOut = typeof max === 'number' && max > 0 ? Math.min(max, 4096) : 512;
+    if (fromContext && contextRaw.trim().length === 0) {
+      return json(c, 400, { error: 'fromContext is true but no context was provided.' });
+    }
 
-    const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
-
-    if (onlyContext && ctx.trim()) {
-      messages.push({
-        role: 'system',
-        content:
-          "You are Clarify. Answer ONLY using the provided context. If the context does not contain the answer, reply with: 'I don't have enough information in the provided context.' Do not include any hidden reasoning.",
-      });
-      messages.push({ role: 'user', content: `Context:\n${ctx}\n\nQuestion:\n${question.trim()}` });
-    } else if (ctx.trim()) {
-      messages.push({
-        role: 'system',
-        content:
-          'You are Clarify. Prefer the provided context; if insufficient, you may use general knowledge. Do not include hidden reasoning.',
-      });
-      messages.push({ role: 'user', content: `Context:\n${ctx}\n\nQuestion:\n${question.trim()}` });
+    let messages: Array<{ role: 'system' | 'user'; content: string }>;
+    if (fromContext) {
+      messages = [
+        {
+          role: 'system',
+          content:
+            'You are Clarify. Answer STRICTLY and ONLY from the provided CONTEXT. ' +
+            'If the context does not contain enough information, reply exactly: ' +
+            "I don't have enough information in the provided context." +
+            ' Do not use outside knowledge. Keep answers clear and concise.',
+        },
+        {
+          role: 'user',
+          content: `CONTEXT:\n${contextRaw.trim()}\n\nQUESTION:\n${questionRaw.trim()}`,
+        },
+      ];
     } else {
-      messages.push({
-        role: 'system',
-        content: 'You are Clarify. Answer clearly and concisely. Do not include hidden reasoning.',
-      });
-      messages.push({ role: 'user', content: question.trim() });
+      const hasContext = contextRaw.trim().length > 0;
+      messages = [
+        {
+          role: 'system',
+          content:
+            'You are Clarify. Be concise and helpful. Use any provided background if useful, but you are NOT restricted to it.',
+        },
+        {
+          role: 'user',
+          content: hasContext
+            ? `BACKGROUND:\n${contextRaw.trim()}\n\nQUESTION:\n${questionRaw.trim()}`
+            : questionRaw.trim(),
+        },
+      ];
     }
 
     const model = c.env?.CHAT_MODEL || 'openai/gpt-4o-mini';
@@ -197,7 +204,7 @@ app.post('/chat', async (c) => {
         model,
         messages,
         temperature: 0.2,
-        max_output_tokens: maxOut,
+        max_output_tokens: max,
       }),
     });
 

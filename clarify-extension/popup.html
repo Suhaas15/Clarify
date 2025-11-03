@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Clarify</title>
+<style>
+  :root{
+    --brand:#5a54f7;
+    --ink:#1f2430;
+    --muted:#6b7280;
+    --bg:#ffffff;
+    --panel:#f7f8fc;
+    --stroke:#e5e7eb;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    overflow:hidden; /* no popup scroll; internal areas will scroll when needed */
+  }
+  /* A popup that fits well on laptop and doesn’t cause horizontal scroll */
+  .wrap{
+    width:420px;              /* stable width that won’t clip */
+    max-width:420px;
+    padding:14px 16px 12px;
+  }
+  .hdr{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .hdr img{ width:24px; height:24px; border-radius:6px; }
+  .hdr .t1{ font-weight:700; font-size:16px; }
+  .subt{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .tip{
+    background:linear-gradient(180deg,#f4f6ff,#eef1ff);
+    border:1px solid var(--stroke);
+    border-radius:12px; padding:12px 14px; margin:8px 0 12px;
+  }
+  .row{ display:flex; gap:12px; margin:0 0 12px; }
+  .btn{
+    flex:1 1 0;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 10px; border:1px solid var(--stroke); border-radius:12px;
+    background:#fff; cursor:pointer; font-weight:600;
+  }
+  .btn:hover{ border-color:#cdd2d8; }
+  .label{
+    display:flex; align-items:center; gap:8px; margin:12px 0 6px; font-weight:700;
+  }
+  .badge{ color:#4f46e5; background:#eef2ff; border:1px solid #e0e7ff; font-size:12px; padding:2px 6px; border-radius:999px; }
+  textarea, .mono{
+    width:100%;
+    border:1px solid var(--stroke);
+    background:#fbfcff;
+    border-radius:12px; padding:12px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size:14px; line-height:1.45; color:#0f172a;
+    resize:none; overflow:auto;
+  }
+  textarea::placeholder{ color:#9aa3af; }
+  .stats{
+    display:flex; gap:18px; align-items:center;
+    color:var(--muted); margin:10px 0 0;
+  }
+  .stats b{ color:#111827; }
+  .foot{
+    display:flex; align-items:center; gap:12px; margin-top:12px;
+  }
+  .foot .grow{ flex:1; }
+  .num{ width:110px; padding:10px 12px; border:1px solid var(--stroke); border-radius:10px; }
+  .send{
+    padding:12px 18px; border-radius:14px; border:0; color:#fff; background:#111827;
+    font-weight:700; cursor:pointer; box-shadow:0 6px 18px rgba(17,24,39,.18);
+  }
+  .send[disabled]{ opacity:.6; cursor:not-allowed; }
+  .hint{ margin:8px 0 2px; color:#6b7280; font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap" style="overflow-x:hidden;">
+    <div class="hdr">
+      <img src="icons/icon128.png" alt="Clarify"/>
+      <div>
+        <div class="t1">Clarify</div>
+        <div class="subt">Ask with Context</div>
+      </div>
+    </div>
+
+    <div class="tip">💡 Select text on any webpage, then click <b>“Use Selection”</b>. For PDFs, copy and click <b>“Paste Clipboard”</b>.</div>
+
+    <div class="row">
+      <button id="btnUse" class="btn">📄 Use Selection</button>
+      <button id="btnPaste" class="btn">📋 Paste Clipboard</button>
+    </div>
+
+    <div class="label">🖊️ Context <span class="badge">Required</span></div>
+    <textarea id="context" placeholder="Paste or insert page selection…" rows="5"></textarea>
+
+    <div class="label">❓ Your Question <span class="badge">Required</span></div>
+    <textarea id="question" placeholder="Ask your question…" rows="4"></textarea>
+
+    <div class="label">🤖 Assistant Reply</div>
+    <div id="status" aria-live="polite" style="min-height:18px;color:#6b7280;margin:6px 0 4px;"></div>
+    <textarea id="answer"
+      placeholder="The answer will appear here…"
+      readonly
+      style="
+        width: 100%;
+        min-height: 120px;
+        max-height: 280px;
+        overflow: auto;
+        resize: vertical;
+        line-height: 1.4;
+      "
+    ></textarea>
+
+    <div class="stats">
+      <div>Context: <b id="sCtx">0</b></div>
+      <div>Question: <b id="sQ">0</b></div>
+      <div>Total: <b id="tokenCount">0</b></div>
+    </div>
+
+    <div class="foot">
+      <label class="grow" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="fromContext"/>
+        <span>Answer only from context</span>
+      </label>
+      <input id="maxTokens" class="num" type="number" min="16" max="8192" step="1" value="1024"/>
+      <button id="sendBtn" class="send">✨ Send</button>
+    </div>
+
+    <div class="hint">Tip: Use Ctrl+Enter to send quickly</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

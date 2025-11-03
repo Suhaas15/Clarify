@@ -1,4 +1,4 @@
-const SERVER = 'http://localhost:8787';
+const SERVER = 'https://clarify.clarify-ai.workers.dev';
 
 const askBtn = document.getElementById('ask') as HTMLButtonElement | null;
 const q = document.getElementById('q') as HTMLTextAreaElement | null;
@@ -36,7 +36,7 @@ askBtn?.addEventListener('click', async () => {
   } catch (err: any) {
     out.innerHTML =
       'Could not reach the server.\n\n' +
-      'Make sure the backend is running on http://localhost:8787.\n' +
+      'Make sure the Clarify Worker is reachable at https://clarify.clarify-ai.workers.dev.\n' +
       `\nDetails: ${err?.message || err}`;
   }
 });

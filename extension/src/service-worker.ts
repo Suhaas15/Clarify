@@ -1,4 +1,4 @@
-const SERVER = 'http://localhost:8787';
+const SERVER = 'https://clarify.clarify-ai.workers.dev';
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
