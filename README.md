@@ -47,6 +47,14 @@ That's it. No data saved. No analytics. Just answers.
 
 ---
 
+## ✨ How It Looks
+
+Here’s Clarify in action — highlighting, asking, and answering right inside your browser:
+
+![Clarify Chrome Extension Screenshot](./assets/clarify_screenshot.png)
+
+---
+
 ## 💡 Features at a Glance
 
 | Feature | Description |
@@ -142,6 +150,8 @@ Backend runs on Cloudflare Workers (free tier compatible):
 cd workers
 wrangler deploy
 ```
+---
+
 ## 🔒 Privacy & Data
 
 Clarify does **not**:
