@@ -3,7 +3,7 @@
 > Highlight text. Ask questions. Get answers that actually make sense.  
 > Clarify turns any webpage or PDF into an instant Q&A experience — right where you’re reading.
 
-![Clarify Logo](<img src="clarify-extension/icons/icon128.png" alt="Clarify Logo" style="width: 64px; height: 64px;">)
+![Clarify Logo](clarify-extension/icons/icon128.png)
 
 ---
 
