@@ -54,7 +54,8 @@ That's it. No data saved. No analytics. Just answers.
 
 Here’s Clarify in action — highlighting, asking, and answering right inside your browser:
 
-![Clarify Chrome Extension Screenshot](./assets/clarify_screenshot.png)
+![Clarify Chrome Extension Screenshot](clarify-extension/1.png)
+![Clarify Chrome Extension Screenshot](clarify-extension/2.png)
 
 ---
 
