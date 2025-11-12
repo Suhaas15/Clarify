@@ -6,6 +6,11 @@
 <p align="center">
   <img src="clarify-extension/icons/icon128.png" alt="Clarify Logo" width="96" height="96">
 </p>
+<p align="center">
+  <a href="[https://chromewebstore.google.com/detail/clarify/ponlkebhgnfclgedkhlgbjaphbldiahe](https://chromewebstore.google.com/detail/clarify/ponlkebhgnfclgedkhlgbjaphbldiahe)" target="_blank">
+    <img src="https://img.shields.io/badge/Get%20it%20on%20Chrome%20Web%20Store-blue?logo=googlechrome&logoColor=white&style=for-the-badge" alt="Get it on Chrome Web Store">
+  </a>
+</p>
 
 
 ---
